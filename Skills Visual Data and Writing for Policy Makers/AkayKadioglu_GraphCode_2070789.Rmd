@@ -1,0 +1,612 @@
+---
+title: "Policy Paper Knitted File _ Akay Kaan Kadioglu _ SNR:2070789"
+output: html_document
+date: "2024-04-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(magrittr)
+library(tidyr)
+library(ggthemes)
+library(patchwork)
+library(ggrepel)
+library(ggsci)
+library(scales)
+
+# I have more figures than in my paper here, for some of them I might use in my presentation - they are not cited in my paper. 
+```
+
+
+```{r}
+# colors = https://nanx.me/ggsci/reference/pal_flatui.html
+# palette = "flattastic"
+
+########
+
+#DA4453FF = red
+#E95546FF = orange
+#F6BA59FF = yellow
+#8BC163FF = green
+#34BC9DFF = neon green
+#3BBOD6FF = turq
+#4B&AD6FF = blue
+#977BD5FF = purple
+#D870A9FF = pink
+#E6E9EDFF = white
+#AAB2BCFF = gray
+#434A53FF = black
+
+########
+
+
+```
+
+### Figure 3
+
+
+
+```{r}
+deco <- read.csv("Decoup.csv", sep = ",")
+countries <- c("Turkey", "Germany", "Netherlands", "Sweden", "France", "Italy")
+deco.1 <- deco %>% 
+  select(-Code) %>% 
+  filter(Entity %in% countries)
+
+
+deco.1 <- deco.1 %>% 
+  group_by(Entity) %>% 
+  subset(Year != "2022")
+
+deco.1.2 <- deco.1 %>%
+  rename(GDP_Per_Capita_2017_Constant = contains("GDP"), Annual_CO2_Emissions_PC = contains("Annual.CO"),
+         Consumption_Based_PC_Emis = contains("based.CO"))
+
+
+deco_IT <- deco.1.2 %>% 
+  filter(Entity  ==  "Italy") %>% 
+  mutate(GDP_Per_Capita_2017_Constant = GDP_Per_Capita_2017_Constant/36585.68) %>% 
+  mutate(Annual_CO2_Emissions_PC = Annual_CO2_Emissions_PC/7.733102)
+
+
+deco_FR <- deco.1.2 %>% 
+  filter(Entity == "France") %>% 
+  mutate(GDP_Per_Capita_2017_Constant = GDP_Per_Capita_2017_Constant/33843.02) %>% 
+  mutate(Annual_CO2_Emissions_PC = Annual_CO2_Emissions_PC/6.974127)
+
+deco_DE <- deco.1.2 %>% 
+  filter(Entity == "Germany") %>% 
+  mutate(GDP_Per_Capita_2017_Constant = GDP_Per_Capita_2017_Constant/36699.48) %>% 
+  mutate(Annual_CO2_Emissions_PC = Annual_CO2_Emissions_PC/13.288876)
+
+deco_TR <- deco.1.2 %>% 
+  filter(Entity == "Turkey") %>% 
+  mutate(GDP_Per_Capita_2017_Constant = GDP_Per_Capita_2017_Constant/12535.92) %>% 
+  mutate(Annual_CO2_Emissions_PC = Annual_CO2_Emissions_PC/2.790932)
+
+deco_NL <- deco.1.2 %>% 
+  filter(Entity == "Netherlands") %>% 
+  mutate(GDP_Per_Capita_2017_Constant = GDP_Per_Capita_2017_Constant/36461.42) %>% 
+  mutate(Annual_CO2_Emissions_PC = Annual_CO2_Emissions_PC/10.884578)
+
+deco_SW <- deco.1.2 %>% 
+  filter(Entity == "Sweden") %>% 
+  mutate(GDP_Per_Capita_2017_Constant = GDP_Per_Capita_2017_Constant/34156.82) %>% 
+  mutate(Annual_CO2_Emissions_PC = Annual_CO2_Emissions_PC/6.727558)
+
+
+country_list <- list(deco_DE, deco_FR, deco_IT, deco_NL, deco_SW, deco_TR)
+
+updated_deco <- do.call(rbind, country_list)
+
+deco.1.3 <- deco.1.2 %>% 
+  mutate(Delta_GDP = (GDP_Per_Capita_2017_Constant/lag(GDP_Per_Capita_2017_Constant) - 1)*100 ) %>% 
+  mutate(Delta_Emis_Gen = (Annual_CO2_Emissions_PC/lag(Annual_CO2_Emissions_PC) - 1)*100) %>% 
+  mutate(Delta_Consp_Emis = (Consumption_Based_PC_Emis/lag(Consumption_Based_PC_Emis) -1)*100)
+
+# Standardization
+
+
+graph <- ggplot(data = updated_deco, mapping = aes(x = Year, y = GDP_Per_Capita_2017_Constant))
+
+
+#C0392BFF = red
+#27AE60FF = green
+
+graph + geom_line(aes(color = "GDP Per capita\nstandardized\nto 1990 levels"), size = 0.9) + geom_line(data = updated_deco, mapping = aes(x = Year, y = Annual_CO2_Emissions_PC, color = "Emission levels\nstandardized\nto 1990 levels\n             "), size = 0.9) +
+  facet_wrap(~ Entity) + theme_bw() + theme(legend.position = "right", 
+                                            legend.text = element_text(size = 9),
+                                            legend.key.size = unit(1, "lines"),
+                                            plot.title = element_text(size = 14, face = "bold"),
+                                            plot.caption = element_text(size = 10, face = "italic", color = "black"),
+                                            legend.title = element_blank(),
+                                            legend.background = element_blank(),
+                                            legend.box.background = element_rect(colour = "black"),
+                                            plot.subtitle = element_text(size = 12), 
+                                            axis.text.x = element_text(angle = 45, size = 8,
+                                                                       face = "bold", color = "black", hjust = 1), 
+                                            axis.text.y = element_text(size = 10, color = "black")) + scale_color_manual(values = c("GDP Per capita\nstandardized\nto 1990 levels" = "#8BC163FF", "Emission levels\nstandardized\nto 1990 levels\n             " = "#DA4453FF")) +
+  labs(x = "Year, 1991-2021", 
+       y = "Values Standardized to 1990 (1990 = 1)",
+       title = "Figure 3:",
+       caption = "Source: ourworldindata.org", 
+       subtitle = "Development of GDP per capita and Emissions") + ylim(0,3)
+
+
+
+
+```
+
+
+### Figure 2
+
+```{r}
+
+########
+
+#DA4453FF = red
+#E95546FF = orange
+#F6BA59FF = yellow
+#8BC163FF = green
+#34BC9DFF = neon green
+#3BBOD6FF = turq
+#4B8AD6FF = blue
+#977BD5FF = purple
+#D870A9FF = pink
+#E6E9EDFF = white
+#AAB2BCFF = gray
+#434A53FF = black
+
+########
+
+graph2 <- read.csv("foshare.csv", sep = ",")
+
+
+graph2.1 <- graph2 %>% filter(country == "TR")
+graph2.2 <- graph2 %>% filter(country == "CN")
+graph2.3 <- graph2 %>% filter(!country %in% c("TR", "CN"))
+
+
+plot2 <- ggplot(data = graph2, mapping = aes(x = year, y = value, color = country)) +
+  geom_line(data = graph2.1, size = 1.5, alpha = 1) + 
+  geom_line(data = graph2.2, size = 1.5, alpha = 1) + 
+  geom_line(data = graph2.3, size = 0.7, alpha = 0.8) + 
+  geom_label_repel(data = filter(graph2, year == 2018 & country == "TR"), aes(label = "Turkey"), nudge_x = 1, nudge_y = -1, show.legend = FALSE, force_pull = 0.5, box.padding = 0.5, segment.size = 0.5, size = 3) +
+  geom_label_repel(data = filter(graph2, year == 2017 &  country == "CN"), aes(label = "China"), nudge_x = 1, show.legend = FALSE, force_pull = 0.5, box.padding = 0.5, segment.size = 0.5, nudge_y = 1, size = 3) +
+  scale_color_manual(values = c("TR" = "#DA4453FF", "CN" = "darkred", "FR" = "#434A53FF", "EU" = "#4B8AD6FF", "World" = "#D870A9FF", "DE" ="#8BC163FF"), labels = c("TR" = "Turkey", "CN" = "China", "FR" = "France", "EU" = "European\nUnion","DE" = "Germany")) + 
+  theme_bw() + 
+  xlim(1990, 2018) + scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  scale_x_continuous(breaks = c(1990, 2000, 2010, 2018), labels = c(1990, 2000, 2010, 2018)) + 
+  labs(x = "Year, 1990-2018", 
+       y = "Fossil Fuel Share",
+       caption = "Source: Climateactiontracker.org", 
+       title = "Figure 1:", 
+       subtitle = "Fossil Fuel Share in Primary Energy Demand") + 
+  theme(legend.title = element_blank(),
+        legend.background = element_blank(),
+        legend.box.background = element_rect(colour = "black"),
+        plot.title = element_text(size = 14, face = "bold", color = "black"), 
+        plot.subtitle = element_text(size = 12),
+        plot.caption = element_text(size = 10, face = "italic"), 
+        axis.text.x = element_text(angle = 45, size = 10, color = "black", hjust = 1))
+
+plot2
+
+
+
+```
+
+### Extra Figure for presentation
+
+```{r}
+
+########
+
+#DA4453FF = red
+#E95546FF = orange
+#F6BA59FF = yellow
+#8BC163FF = green
+#34BC9DFF = neon green
+#3BBOD6FF = turq
+#4B&AD6FF = blue
+#977BD5FF = purple
+#D870A9FF = pink
+#E6E9EDFF = white
+#AAB2BCFF = gray
+#434A53FF = black
+
+########
+
+oecd <- read.csv("greenhousecomp.csv", sep = ",")
+
+oecd <- oecd %>% 
+  filter(COU == "TUR") %>% 
+  filter(Unit == "Percentage") %>% 
+  filter(POL == "GHG")
+
+oecd.1 <- oecd %>% 
+  select(-YEA, -PowerCode.Code, -Reference.Period, -Reference.Period.Code, -Flag.Codes, -Flags )
+
+oecd.1 <- oecd.1 %>% 
+  select(-Pollutant, -COU, -PowerCode)
+
+
+VARS <- c("IND_PROC_P", "ENER_P", "AGR_P", "WAS_P")
+oecd.1.3 <- oecd.1 %>% 
+  filter(VAR %in% VARS) %>% 
+  group_by(VAR) %>% 
+  arrange((Value))
+
+
+# I need to change the name of the observations, I will subset each - rename and rbind 
+
+# 	1 - Energy (%)
+
+ener <- oecd.1.3 %>% 
+  filter(VAR == "ENER_P") %>% 
+  mutate(Variable = substr(Variable, 5, 10)) %>%
+  mutate(number = 4)
+
+
+# 2- Industrial processes and product use (%)
+
+industrial <- oecd.1.3 %>% 
+  filter(VAR == "IND_PROC_P") %>% 
+  mutate(Variable = substr(Variable, 4, 13))  %>%
+  mutate(number = 3)
+
+
+# 	3 - Agriculture (%)
+
+agriculture <- oecd.1.3 %>% 
+  filter(VAR == "AGR_P") %>% 
+  mutate(Variable = substr(Variable, 5, 15))  %>%
+  mutate(number = 2)
+
+
+# 	5 - Waste (%)
+
+waste <- oecd.1.3 %>% 
+  filter(VAR == "WAS_P") %>% 
+  mutate(Variable = substr(Variable, 5, 9))  %>%
+  mutate(number = 1)
+
+
+
+# Multi r-bind 
+
+
+oecd.1.4 <- do.call("rbind", list(ener, industrial, agriculture, waste))
+
+oecd.1.4 <- oecd.1.4 %>% 
+  arrange(desc(number))
+
+# energy, industrial, agriculture, waste 
+
+oecd_plot <- ggplot(data = oecd.1.4, aes(x = Year, y = Value, fill = Variable, group = Variable))
+
+oecd_plot + 
+  geom_area(alpha = 1, position = "stack") +
+  labs(subtitle = "Development of GHG Emission Composition", x = "Year, 1990-2021", y = "Percentage of GHG Emissions", caption = "Source: OECD.stat", title = "Figure Extra:") + theme_bw() + scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  scale_fill_manual(values = c("Energy" = "#DA4453FF", "Industrial" = "#8BC163FF", "Agriculture" = "#4B8AD6FF", "Waste" = "#977BD5FF")) + 
+  theme(legend.title = element_blank(),
+        legend.background = element_blank(),
+        legend.box.background = element_rect(colour = "black"),
+        plot.title = element_text(size = 14, face = "bold", color = "black"), 
+        plot.subtitle = element_text(size = 12),
+        plot.caption = element_text(size = 10, face = "italic"), 
+         axis.text.x = element_text(angle = 45, size = 8, color = "black", hjust = 1))
+
+```
+
+
+### Figure 4
+
+```{r}
+graphdata5 <- read.csv("effectivecarbon.csv", sep = ",")
+########
+
+#DA4453FF = red
+#E95546FF = orange
+#F6BA59FF = yellow
+#8BC163FF = green
+#34BC9DFF = neon green
+#3BBOD6FF = turq
+#4B&AD6FF = blue
+#977BD5FF = purple
+#D870A9FF = pink
+#E6E9EDFF = white
+#AAB2BCFF = gray
+#434A53FF = black
+
+########
+
+graphdata5.1 <- graphdata5 %>% 
+  filter(Sector == "All sectors") %>% 
+  select(-SECTOR, -Sector, -Flag.Codes, -Flags, -YEAR)
+
+
+graphdata5.2 <- graphdata5.1 %>% 
+  group_by(VARIABLE) %>% 
+  filter(Year == "2021")
+
+
+# Use this to subset datasets and plot seperately
+
+sel_var <- c("NETECR", "SUBSID", "ECRATE", "FUETAX")
+graphdata5.2.2 <- graphdata5.2 %>% 
+  subset(VARIABLE %in% sel_var) %>% 
+  filter(CURRENCY == "EURREAL")
+
+netcarbon_graph1 <- graphdata5.2.2 %>% 
+  filter(VARIABLE == "NETECR", Category == "Total excluding biofuels CO2")
+
+netcarbon_graph1$Country[12] <- "G20 Average"
+netcarbon_graph1$Country[8] <- "China"
+
+netcarbon_graph1.1 <- netcarbon_graph1 %>% 
+  filter(!COUNTRY %in% c("NZL", "FIN"))
+
+
+netcarbon_graph1.1$Country[8] <- "Weighted Average - World"
+netcarbon_graph1.1$Country[9] <- "Weighted Average - OECD"
+
+
+netcarbon1 <- ggplot(data = netcarbon_graph1.1, aes(x = reorder(Country, Value), y = Value, fill = Country)) +
+  geom_col(width = 0.7, show.legend = FALSE, color = "black") + 
+  coord_flip() +
+  scale_fill_manual(values = c("Türkiye" = "#DA4453FF", "Weighted Average - OECD" = "#977BD5FF", "Weighted Average - World" = "#8BC163FF", "Netherlands" = "#AAB2BCFF", "Italy" = "#AAB2BCFF", "France" = "#AAB2BCFF", "Germany" = "#AAB2BCFF", "India" = "#AAB2BCFF", "China" = "#AAB2BCFF", "G20 Average" = "#F6BA59FF"))  +
+  scale_y_continuous(breaks = c(0,30, 60, 90, 110), labels = dollar_format(suffix = "€", prefix = "")) + 
+  labs(title = "Figure 4:", subtitle = "Net Effective Carbon Rates", x = NULL, y = "Effective Carbon Rate", 
+       caption = "Source: OECD.stat, Net effective carbon rates") + theme_bw() + 
+  theme(plot.title = element_text(size = 14, face = "bold", color = "black"), 
+        plot.subtitle = element_text(size = 12),
+        plot.caption = element_text(size = 10, face = "italic"), 
+        axis.title.y = element_blank(), 
+        axis.text.y = element_text(size = 9, color = "black"))
+
+netcarbon1
+
+
+
+
+```
+
+### Figure 5 
+```{r}
+
+########
+
+#DA4453FF = red
+#E95546FF = orange
+#F6BA59FF = yellow
+#8BC163FF = green
+#34BC9DFF = neon green
+#3BBOD6FF = turq
+#4B&AD6FF = blue
+#977BD5FF = purple
+#D870A9FF = pink
+#E6E9EDFF = white
+#AAB2BCFF = gray
+#434A53FF = black
+
+########
+
+oecd7 <- read.csv("oecd_emissiondata.csv", sep = ",")
+
+
+oecd7 <- oecd7 %>% 
+  filter(POL == "GHG", VAR == "TOTAL") 
+
+oecd7 <- oecd7 %>% 
+  filter(Country == "Türkiye") %>% 
+  select(-Flags, -Flag.Codes, - Reference.Period, -Reference.Period.Code, -PowerCode.Code, -Unit.Code, -YEA)
+
+oecd7 <- oecd7 %>% 
+  filter(Country == "Türkiye") %>% 
+  select(Year, Value)
+
+oecd7 <- oecd7 %>%
+  mutate(random = -1)
+
+oecd7 <- oecd7 %>% 
+  mutate(Value = Value/1000)
+
+# Scenarios from Turkey's NDC (2023) and Climate Action Tracker (CAT) - they are 3 values added to a time series - creating a time discontinuity in order to add the bar chart to the right - no data was available for a time series with a break, I had to add them manually but I cited them properly. 
+
+
+value_2030_1.5deg <- data.frame(Year = 2030, Value = 300, random = 0)
+value_2030_ndc <- data.frame(Year = 2030, Value = 695, random = 1)
+value_2030_asusual <- data.frame(Year = 2030, Value = 1175, random = 2)
+
+
+#tidyverse approach I learned 
+
+oecd7.2 <- bind_rows(oecd7, value_2030_1.5deg, value_2030_ndc, value_2030_asusual)
+
+oecd7.2$random <- as.factor(oecd7.2$random)
+
+
+# Thousand tons
+oecd7 <- oecd7 %>% 
+  mutate(Value = Value/1000)
+
+
+oecd7.1 <- subset(oecd7, Year == "2020")
+# Million tons equivalent
+graph7 <- ggplot(data = filter(oecd7.2, random == -1),  mapping = aes(x = Year, y = Value))
+
+graph7 + 
+  geom_line(color = "#4B8AD6FF", size = 1) +
+  ylim(0, 1200) +
+  xlim(1990, 2035) + geom_col(data = filter(oecd7.2, Year == 2030 & random == 2), aes(x = Year, y = Value, fill = random), position = "stack", alpha = 0.7, show.legend = FALSE) + geom_col(data = filter(oecd7.2, Year == 2030 & random == 1), aes(x = Year, y = Value, fill = random), position = "stack", alpha = 0.7, show.legend = FALSE) + geom_col(data = filter(oecd7.2, Year == 2030 & random == 0), aes(x = Year, y = Value, fill = random), position = "stack", alpha = 0.7, show.legend = FALSE) + geom_point(data = filter(oecd7.2, Year == 2030), color = "gray10", shape = 8, size = 2) +
+  geom_text(x = 2025, y = 1175, label = "Emissions projection\n with no change\nin policies for 2030", size = 2.4) + geom_text(x = 2025, y = 675, label = "Turkey's Emission Target\nfor 2030", size = 2.4) + geom_text(x = 2025, y = 300, label = "1.5°C Emission Scenario\nfor 2030", size = 2.4) + theme_bw() +
+  labs(x = "Year", y = "Emissions in Millions of Tons CO2 Equivalent",
+       title = "Figure 2:", subtitle = "Emission History for Turkey, 1990-2021,\nand Different Emission Projections for 2030", caption = "Source: OECD.stat Emissions Database,\nUnited Nations Framework Convention on Climate Change (2023),\nClimate Action Tracker (CAT)") + 
+  theme(plot.title = element_text(size = 14, face = "bold", color = "black"), 
+        plot.subtitle = element_text(size = 12), 
+        plot.caption = element_text(size = 8, face = "italic"))
+
+
+```
+
+### Figure 6 
+
+
+```{r}
+
+```
+
+```{r}
+#INSTALL EUROSTAT, LEAFLET, giscoR
+
+########
+
+#DA4453FF = red
+#E95546FF = orange
+#F6BA59FF = yellow
+#8BC163FF = green
+#34BC9DFF = neon green
+#3BBOD6FF = turq
+#4B&AD6FF = blue
+#977BD5FF = purple
+#D870A9FF = pink
+#E6E9EDFF = white
+#AAB2BCFF = gray
+#434A53FF = black
+
+########
+
+# Packages
+
+library(tidyverse)
+library(eurostat)
+library(leaflet)
+library(sf)
+library(scales)
+library(cowplot)
+library(ggthemes)
+library(giscoR)
+library(maps)
+
+#########
+
+SHP_0 <- get_eurostat_geospatial(resolution = 10, 
+                                  nuts_level = 0, 
+                                  year = 2016)
+
+graphdata9 <- read.csv("oecd_netecr.csv", sep = ",")
+
+graphdata9.1 <- graphdata9 %>% 
+  filter(VARIABLE == "NETECR" & SECTOR == "ALL" & CATEGORY == "ALL")
+
+variables_interested <- c("Country", "COUNTRY", "Variable", "Currency", "Year", "Value")
+
+graphdata9.2 <- graphdata9.1 %>% 
+  select(variables_interested)
+
+library(eurostat)
+library(sf)
+
+# First layer 
+SHP_0 <- get_eurostat_geospatial(resolution = 10, 
+                                  nuts_level = 0, 
+                                  year = 2016)
+
+
+# Second layer
+
+Country.1 <- c("Albania", "Austria", "Belgium", "Netherlands", "Poland", "Portugal", "Denmark", "Germany", "Greece", "Spain", "Bulgaria", "Switzerland", "Cyprus", "Romania", "Serbia", "Czech Republic", "Estonia", "Hungary", "Croatia", "Slovenia", "Slovakia", "Sweden", "Italy", "Türkiye", "Finland", "Norway", "Ireland", "Iceland", "Liechtenstein", "Lithuania", "Luxembourg", "Latvia", "Montenegro", "North Macedonia", "United Kingdom", "Malta", "France")
+
+SHP_1 <- SHP_0 %>% 
+  mutate(NAME_LATN = Country.1)
+
+colnames(SHP_1)[5] <- "Country"
+
+
+my_dataset_map9 <- full_join(SHP_1, graphdata9.2, by = "Country")
+
+my_dataset_map9.1 <- na.omit(my_dataset_map9)
+  
+
+first_layer <- ggplot() + geom_sf(data = SHP_0, fill = "#AAB2BCFF", color = "black", size = 0.2) + scale_y_continuous(limits = c(35, 65)) + scale_x_continuous(limits = c(-10, 45)) + theme_map()
+
+second_layer <- first_layer +
+  geom_sf(data = my_dataset_map9.1, aes(fill = Value), color = "black", size = 0.2) + scale_fill_gradient(low = "#DA4453FF", high = "#34BC9DFF", labels = dollar_format(suffix = "€", prefix = "")) + 
+  labs(fill = "Effective Carbon Rate,\nper ton of CO2e",
+       title = "Figure 5:",
+       subtitle = "Net Effective Carbon Rates in Europe - Gray Areas indicate no data",
+       caption = "Sources: OECD, Eurostat.") + theme(legend.position = "right", 
+                                                                 legend.text = element_text(size = 6), 
+                                                                 legend.title = element_text(size = 8, face = "bold"),
+                                                     legend.title.align = 0.5, 
+                                                                 plot.title = element_text(size = 12, face = "bold"), 
+                                                                 plot.subtitle = element_text(size = 10),
+                                                     plot.caption = element_text(size = 8, face = "italic"), 
+                                                     legend.background = element_blank(),
+                                                     legend.key.size = unit(1, "lines"), 
+                                                     plot.background = element_rect(color = "white"))
+                                            
+second_layer
+
+
+```
+
+
+### Coal Subsidy Graph
+
+
+```{r}
+
+# Coordinate data imported and manipulated already, will use that = SHP_1
+
+subsidy_map <- read.csv("net_ecr_oecd.csv", sep = ",")
+
+subsidy_map <- subsidy_map %>% 
+  filter(CURRENCY == "EURREAL") %>% 
+  select(-COUNTRY, -SECTOR, -Sector, -Category, -Variable, -CURRENCY, -YEAR, -Flag.Codes, -Flags)
+
+subsidy_map <- subsidy_map %>% 
+  filter(CATEGORY == "COAL")
+
+subsidy_map$Country[20] <- "Türkiye"
+
+
+# The subsidy amounts are negative because they regarded as a tax in the database - I have to mutate it by -1 to reflect an amount - positive value 
+
+subsidy_map <- subsidy_map %>% 
+  mutate(Value = Value*(-1))
+
+subsidy_map_joined <- left_join(SHP_1, subsidy_map, by = "Country")
+
+
+layer_uno <- ggplot() + geom_sf(data = SHP_1, fill = "#AAB2BCFF", color = "black", size = 0.2) + scale_y_continuous(limits = c(35, 65)) + scale_x_continuous(limits = c(-10, 45)) + theme_map()
+
+layer_duo <- layer_uno +
+  geom_sf(data = subsidy_map_joined, aes(fill = Value), color = "black", size = 0.2) + scale_fill_gradient(high = "#DA4453FF", low = "#34BC9DFF", labels = dollar_format(suffix = "€", prefix = ""))
+
+layer_duo + labs(title = "Figure 6: Coal Subsidy per ton C02e emissions, 2021", subtitle = "Gray areas indicate missing values", caption = "Source: OECD Database, Effective Carbon Rates", fill = "Coal Subsidy per ton\nof emissions") + theme(legend.position = "right", 
+                                                                 legend.text = element_text(size = 7), 
+                                                                 legend.title = element_text(size = 8, face = "bold"),
+                                                     legend.title.align = 0.5, 
+                                                                 plot.title = element_text(size = 12, face = "bold"), 
+                                                                 plot.subtitle = element_text(size = 10),
+                                                     plot.caption = element_text(size = 8, face = "italic"), 
+                                                     legend.background = element_blank(),
+                                                     legend.key.size = unit(1, "lines")) 
+
+
+```
+
+
+
+
+
+
+
