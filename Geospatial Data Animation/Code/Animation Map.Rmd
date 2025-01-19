@@ -1,0 +1,197 @@
+---
+title: "Animated Geospatial Data"
+author: "Akay Kaan Kadioglu"
+date: "18-01-2025"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(ggrepel)
+library(ggthemes)
+library(viridis)
+library(magrittr)
+library(gganimate)
+library(patchwork)
+
+```
+
+
+
+```{r}
+# Data from a for Netherlands for an assignment, used for purposes of learning
+load("nl_stat.RData")
+```
+
+
+### Selecting Variables
+
+```{r}
+main <- nl_data %>% 
+  select(1:7)
+```
+
+
+### Create simulated datasets, these datasets can be something related to municipalities that change over time
+
+```{r}
+main.1 <- main
+main.2 <- main
+main.3 <- main
+main.4 <- main
+main.5 <- main
+main.6 <- main
+main.7 <- main
+main.8 <- main
+main.9 <- main
+main.10 <- main
+main.11 <- main
+main.12 <- main
+main.13 <- main
+main.14 <- main
+main.15 <- main
+```
+
+
+
+```{r}
+set.seed(123)
+
+
+data_frames <- list(main.1, main.2, main.3, main.4, main.5, main.6, main.7, main.8, main.9, main.10, main.11, main.12, main.13, main.14, main.15)
+years <- 2010:2024
+
+
+mean_multiplier <- 1       
+std_dev_multiplier <- 0.2   
+min_multiplier <- 0.8       
+max_multiplier <- 1.2        
+
+
+mean_value <- 50   
+std_dev <- 30      
+
+
+for (i in 1:length(data_frames)) {
+  data_frames[[i]]$Year <- rep(years[i], nrow(data_frames[[i]]))
+  
+  
+  data_frames[[i]]$Random_Sample <- rnorm(nrow(data_frames[[i]]), mean = mean_value, sd = std_dev)
+  
+  
+  random_multipliers <- rnorm(nrow(data_frames[[i]]), mean = mean_multiplier, sd = std_dev_multiplier)
+  
+  
+  random_multipliers <- pmin(pmax(random_multipliers, min_multiplier), max_multiplier)
+  
+  
+  data_frames[[i]]$population <- data_frames[[i]]$population * random_multipliers
+}
+
+
+main.1 <- data_frames[[1]]
+main.2 <- data_frames[[2]]
+main.3 <- data_frames[[3]]
+main.4 <- data_frames[[4]]
+main.5 <- data_frames[[5]]
+main.6 <- data_frames[[6]]
+main.7 <- data_frames[[7]]
+main.8 <- data_frames[[8]]
+main.9 <- data_frames[[9]]
+main.10 <- data_frames[[10]]
+main.11 <- data_frames[[11]]
+main.12 <- data_frames[[12]]
+main.13 <- data_frames[[13]]
+main.14 <- data_frames[[14]]
+main.15 <- data_frames[[15]]
+
+```
+
+### Merge data together
+```{r}
+# do.call could have been used as well
+train <- bind_rows(main.1, main.2, main.3, main.4, main.5, main.6, main.7, main.8, main.9, main.10, main.11, main.12, main.13, main.14, main.15)
+
+```
+
+
+### Subset a time series data and graph it, merge it with the animation
+```{r}
+# group 227
+
+subsetted <- train %>% 
+  filter(group == 227)
+
+```
+# Random variable average per year
+```{r}
+subsetted_cleaned <- subsetted %>% 
+  group_by(Year) %>% 
+  summarise(average_RV = mean(Random_Sample, na.rm = TRUE))
+```
+
+
+### plotting line
+
+
+```{r}
+tilburg <- ggplot(subsetted_cleaned, aes(x = Year, y = average_RV), color = "red") +
+  geom_point(color = "red", size = 3) + geom_line(color = "blue", size = 1, alpha = 0.5) + 
+  labs(title = "Tilburg RV through time", subtitle = "Simulated", x = "Year", y = "RV Mean") +
+  theme_bw() + transition_reveal(Year)
+
+tilburg_animated <- animate(tilburg, fps = 10, duration = 10, width = 800, height = 600)
+anim_save("tilburg.gif", animation = tilburg_animated)
+
+
+```
+
+
+
+### Plotting map
+```{r}
+oecd_map <- ggplot(train, aes(x = long, y = lat, group = group)) +
+  geom_polygon(aes(fill = Random_Sample), color = "white", size = 0.1) + 
+  scale_fill_viridis_c(option = "A", direction = 1, na.value = "grey50") + 
+  coord_equal() +
+  theme_map() +
+  theme(legend.position = "right") +
+  labs(title = 'Year: {closest_state}', fill = 'RV Simulated') +
+  transition_states(Year, transition_length = 2, state_length = 1) +  
+  ease_aes('linear')
+
+
+
+animated_map <- animate(oecd_map, fps = 10, duration = 10, width = 800, height = 600)
+anim_save("population_animation_final.gif", animation = animated_map)
+```
+
+
+### combine gifs
+```{r}
+library(magick)
+
+gif_map <- image_read("population_animation_final.gif")
+gif_tilburg <- image_read("tilburg.gif")
+
+
+combined_gif <- image_append(c(gif_map[1], gif_tilburg[1]), stack = FALSE)
+
+for(i in 2:length(gif_map)) {
+  combined_frame <- image_append(c(gif_map[i], gif_tilburg[i]), stack = FALSE)
+  combined_gif <- c(combined_gif, combined_frame)
+}
+
+
+image_write(combined_gif, "combined.gif")
+
+```
+
+
+
