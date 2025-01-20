@@ -1,2 +1,1 @@
-# WritingSamplesMRes
-Writing samples from my bachelor program, including extracurricular and self-motivated work.
+GIFs displaying the variation in a simulated variable over time for the Netherlands and Tilburg, represented on a color-coded scale.
